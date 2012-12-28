@@ -1753,7 +1753,7 @@ public final class Launcher extends Activity
         launcherIntent.addCategory(Intent.CATEGORY_HOME);
         launcherIntent.addCategory(Intent.CATEGORY_DEFAULT);
         ActivityInfo defaultLauncher = getPackageManager().resolveActivity(launcherIntent, PackageManager.MATCH_DEFAULT_ONLY).activityInfo;
-        boolean preferencesVisible = !defaultLauncher.packageName.equals(getClass().getPackage().getName());
+        boolean preferencesVisible = defaultLauncher.packageName.equals(getClass().getPackage().getName());
         menu.findItem(MENU_PREFERENCES).setVisible(preferencesVisible);
         return true;
     }
@@ -3431,7 +3431,7 @@ public final class Launcher extends Activity
         launcherIntent.addCategory(Intent.CATEGORY_HOME);
         launcherIntent.addCategory(Intent.CATEGORY_DEFAULT);
         ActivityInfo defaultLauncher = getPackageManager().resolveActivity(launcherIntent, PackageManager.MATCH_DEFAULT_ONLY).activityInfo;
-        boolean preferencesVisible = !defaultLauncher.packageName.equals(getClass().getPackage().getName());
+        boolean preferencesVisible = defaultLauncher.packageName.equals(getClass().getPackage().getName());
         if (activityName != null && (ViewConfiguration.get(this).hasPermanentMenuKey() || !preferencesVisible)) {
             int coi = getCurrentOrientationIndexForGlobalIcons();
             mAppMarketIntent = intent;
@@ -3478,7 +3478,7 @@ public final class Launcher extends Activity
         launcherIntent.addCategory(Intent.CATEGORY_HOME);
         launcherIntent.addCategory(Intent.CATEGORY_DEFAULT);
         ActivityInfo defaultLauncher = getPackageManager().resolveActivity(launcherIntent, PackageManager.MATCH_DEFAULT_ONLY).activityInfo;
-        boolean preferencesVisible = !defaultLauncher.packageName.equals(getClass().getPackage().getName());
+        boolean preferencesVisible = defaultLauncher.packageName.equals(getClass().getPackage().getName());
         if (ViewConfiguration.get(this).hasPermanentMenuKey() || !preferencesVisible) {
             overflowMenuButton.setVisibility(View.GONE);
             overflowMenuButton.setEnabled(false);
