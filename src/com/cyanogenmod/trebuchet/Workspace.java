@@ -30,7 +30,6 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
@@ -55,7 +54,6 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewParent;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
@@ -302,6 +300,7 @@ public class Workspace extends PagedView
     private int mDefaultHomescreen;
     private boolean mStretchScreens;
     private boolean mShowSearchBar;
+    private boolean mShowHotseat;
     private boolean mResizeAnyWidget;
     private boolean mHideIconLabels;
     private boolean mScrollWallpaper;
@@ -389,6 +388,7 @@ public class Workspace extends PagedView
 
         mStretchScreens = PreferencesProvider.Interface.Homescreen.getStretchScreens();
         mShowSearchBar = PreferencesProvider.Interface.Homescreen.getShowSearchBar();
+        mShowHotseat = PreferencesProvider.Interface.Dock.getShowDock();
         mResizeAnyWidget = PreferencesProvider.Interface.Homescreen.getResizeAnyWidget();
         mHideIconLabels = PreferencesProvider.Interface.Homescreen.getHideIconLabels();
         mTransitionEffect = PreferencesProvider.Interface.Homescreen.Scrolling.getTransitionEffect(
@@ -403,7 +403,7 @@ public class Workspace extends PagedView
         mShowScrollingIndicator = PreferencesProvider.Interface.Homescreen.Indicator.getShowScrollingIndicator();
         mFadeScrollingIndicator = PreferencesProvider.Interface.Homescreen.Indicator.getFadeScrollingIndicator();
         mScrollingIndicatorPosition = PreferencesProvider.Interface.Homescreen.Indicator.getScrollingIndicatorPosition();
-        mShowDockDivider = PreferencesProvider.Interface.Dock.getShowDivider();
+        mShowDockDivider = PreferencesProvider.Interface.Dock.getShowDivider() && mShowHotseat;
 
         initWorkspace();
         checkWallpaper();
@@ -525,13 +525,18 @@ public class Workspace extends PagedView
         }
 
         if (!mShowSearchBar) {
-            int paddingTop = 0;
-            int paddingLeft = 0;
-            if (mLauncher.getCurrentOrientation() == Configuration.ORIENTATION_PORTRAIT) {
-                paddingTop = (int)res.getDimension(R.dimen.qsb_bar_hidden_inset);
-                paddingLeft = getPaddingRight();
-            }
+            int paddingLeft = (int) res.getDimension(R.dimen.workspace_left_padding_qsb_hidden);
+            int paddingTop = (int) res.getDimension(R.dimen.workspace_top_padding_qsb_hidden);
             setPadding(paddingLeft, paddingTop, getPaddingRight(), getPaddingBottom());
+        }
+
+        if (!mShowHotseat) {
+            int paddingRight = (int) res.getDimension(R.dimen.workspace_right_padding_hotseat_hidden);
+            int paddingBottom = (int) res.getDimension(R.dimen.workspace_bottom_padding_hotseat_hidden);
+            setPadding(getPaddingLeft(), getPaddingTop(), paddingRight, paddingBottom);
+
+            View dockScrollingIndicator = findViewById(R.id.paged_view_indicator_dock);
+            ((MarginLayoutParams)dockScrollingIndicator.getLayoutParams()).bottomMargin = 0;
         }
 
         if (!mShowScrollingIndicator) {
@@ -3027,7 +3032,7 @@ public class Workspace extends PagedView
                 int height = smallestSize.y - paddingTop - paddingBottom;
                 mLandscapeCellLayoutMetrics = new Rect();
                 CellLayout.getMetrics(mLandscapeCellLayoutMetrics, res,
-                        width, height, LauncherModel.getCellCountX(), LauncherModel.getCellCountY(),
+                        width, height, LauncherModel.getWorkspaceCellCountX(), LauncherModel.getWorkspaceCellCountY(),
                         orientation);
             }
             return mLandscapeCellLayoutMetrics;
@@ -3041,7 +3046,7 @@ public class Workspace extends PagedView
                 int height = largestSize.y - paddingTop - paddingBottom;
                 mPortraitCellLayoutMetrics = new Rect();
                 CellLayout.getMetrics(mPortraitCellLayoutMetrics, res,
-                        width, height, LauncherModel.getCellCountX(), LauncherModel.getCellCountY(),
+                        width, height, LauncherModel.getWorkspaceCellCountX(), LauncherModel.getWorkspaceCellCountY(),
                         orientation);
             }
             return mPortraitCellLayoutMetrics;
@@ -3209,8 +3214,8 @@ public class Workspace extends PagedView
 
    void mapPointFromSelfToHotseatLayout(Hotseat hotseat, float[] xy) {
        hotseat.getPageAt(hotseat.getNextPage()).getMatrix().invert(mTempInverseMatrix);
-       xy[0] = xy[0] - hotseat.getLeft() - hotseat.getPageAt(hotseat.getNextPage()).getLeft();
-       xy[1] = xy[1] - hotseat.getTop() - hotseat.getPageAt(hotseat.getNextPage()).getTop();
+       xy[0] = xy[0] - (hotseat.getLeft() - hotseat.getScrollX()) - hotseat.getPageAt(hotseat.getNextPage()).getLeft();
+       xy[1] = xy[1] - (hotseat.getTop() - hotseat.getScrollY()) - hotseat.getPageAt(hotseat.getNextPage()).getTop();
        mTempInverseMatrix.mapPoints(xy);
    }
 
@@ -3615,7 +3620,7 @@ public class Workspace extends PagedView
 
             boolean findNearestVacantCell = true;
             if (pendingInfo.itemType == LauncherSettings.Favorites.ITEM_TYPE_SHORTCUT ||
-                    pendingInfo.itemType == LauncherSettings.Favorites.ITEM_TYPE_LAUNCHER_ACTION) {
+                    pendingInfo.itemType == LauncherSettings.Favorites.ITEM_TYPE_ALLAPPS) {
                 mTargetCell = findNearestArea(touchXY[0], touchXY[1], spanX, spanY,
                         cellLayout, mTargetCell);
                 float distance = cellLayout.getDistanceFromCell(mDragViewVisualCenter[0],
@@ -3662,14 +3667,8 @@ public class Workspace extends PagedView
                                 container, screen, mTargetCell, span, null);
                         break;
                     case LauncherSettings.Favorites.ITEM_TYPE_SHORTCUT:
-                        case LauncherSettings.Favorites.ITEM_TYPE_LAUNCHER_ACTION:
-                        if (pendingInfo instanceof PendingAddActionInfo) {
-                            mLauncher.processActionFromDrop(((PendingAddActionInfo)pendingInfo).action,
-                                    container, screen, mTargetCell, null);
-                        } else {
-                            mLauncher.processShortcutFromDrop(pendingInfo.componentName,
-                                    container, screen, mTargetCell, null);
-                        }
+                        mLauncher.processShortcutFromDrop(pendingInfo.componentName,
+                                container, screen, mTargetCell, null);
                         break;
                     default:
                         throw new IllegalStateException("Unknown item type: " +
@@ -3700,7 +3699,7 @@ public class Workspace extends PagedView
             switch (info.itemType) {
             case LauncherSettings.Favorites.ITEM_TYPE_APPLICATION:
             case LauncherSettings.Favorites.ITEM_TYPE_SHORTCUT:
-            case LauncherSettings.Favorites.ITEM_TYPE_LAUNCHER_ACTION:
+            case LauncherSettings.Favorites.ITEM_TYPE_ALLAPPS:
                 if (info.container == NO_ID && info instanceof ApplicationInfo) {
                     // Came from all apps -- make a copy
                     info = new ShortcutInfo((ApplicationInfo) info);
@@ -3831,7 +3830,7 @@ public class Workspace extends PagedView
 
         int[] finalPos = new int[2];
         float scaleXY[] = new float[2];
-        boolean scalePreview = !(info instanceof PendingAddShortcutInfo || info instanceof PendingAddActionInfo);
+        boolean scalePreview = !(info instanceof PendingAddShortcutInfo);
         getFinalPositionForDropAnimation(finalPos, scaleXY, dragView, cellLayout, info, mTargetCell,
                 external, scalePreview);
 

@@ -538,10 +538,10 @@ public class AppsCustomizePagedView extends PagedViewWithDraggableItems implemen
         int maxCellCountX = Integer.MAX_VALUE;
         int maxCellCountY = Integer.MAX_VALUE;
         if (LauncherApplication.isScreenLarge()) {
-            maxCellCountX = (isLandscape ? LauncherModel.getCellCountX() :
-                LauncherModel.getCellCountY());
-            maxCellCountY = (isLandscape ? LauncherModel.getCellCountY() :
-                LauncherModel.getCellCountX());
+            maxCellCountX = (isLandscape ? LauncherModel.getWorkspaceCellCountX() :
+                LauncherModel.getWorkspaceCellCountY());
+            maxCellCountY = (isLandscape ? LauncherModel.getWorkspaceCellCountY() :
+                LauncherModel.getWorkspaceCellCountX());
         }
         if (mMaxAppCellCountX > -1) {
             maxCellCountX = Math.min(maxCellCountX, mMaxAppCellCountX);
@@ -646,7 +646,6 @@ public class AppsCustomizePagedView extends PagedViewWithDraggableItems implemen
             AppWidgetManager.getInstance(mLauncher).getInstalledProviders();
         Intent shortcutsIntent = new Intent(Intent.ACTION_CREATE_SHORTCUT);
         List<ResolveInfo> shortcuts = mPackageManager.queryIntentActivities(shortcutsIntent, 0);
-        List<LauncherAction.Action> launcherActions = LauncherAction.getAllActions();
         for (AppWidgetProviderInfo widget : widgets) {
             if (widget.minWidth > 0 && widget.minHeight > 0) {
                 // Ensure that all widgets we show can be added on a workspace of this size
@@ -654,8 +653,8 @@ public class AppsCustomizePagedView extends PagedViewWithDraggableItems implemen
                 int[] minSpanXY = Launcher.getMinSpanForWidget(mLauncher, widget);
                 int minSpanX = Math.min(spanXY[0], minSpanXY[0]);
                 int minSpanY = Math.min(spanXY[1], minSpanXY[1]);
-                if (minSpanX <= LauncherModel.getCellCountX() &&
-                        minSpanY <= LauncherModel.getCellCountY()) {
+                if (minSpanX <= LauncherModel.getWorkspaceCellCountX() &&
+                        minSpanY <= LauncherModel.getWorkspaceCellCountY()) {
                     mWidgets.add(widget);
                 } else {
                     Log.e(TAG, "Widget " + widget.provider + " can not fit on this device (" +
@@ -667,7 +666,6 @@ public class AppsCustomizePagedView extends PagedViewWithDraggableItems implemen
             }
         }
         mWidgets.addAll(shortcuts);
-        mWidgets.addAll(launcherActions);
         Collections.sort(mWidgets,
                 new LauncherModel.WidgetAndShortcutNameComparator(mLauncher, mPackageManager));
         updatePageCounts();
@@ -1434,19 +1432,6 @@ public class AppsCustomizePagedView extends PagedViewWithDraggableItems implemen
         return preview;
     }
 
-    private Bitmap getShortcutPreview(LauncherAction.Action info) {
-        int offset = 0;
-        int bitmapSize = mAppIconSize;
-        Bitmap preview = Bitmap.createBitmap(bitmapSize, bitmapSize, Config.ARGB_8888);
-
-        final Resources res = getContext().getResources();
-
-        // Render the icon
-        Drawable icon = res.getDrawable(info.getDrawable());
-        renderDrawableToBitmap(icon, preview, offset, offset, mAppIconSize, mAppIconSize);
-        return preview;
-    }
-
     private Bitmap getWidgetPreview(ComponentName provider, int previewImage, int iconId,
             int cellHSpan, int cellVSpan, int maxWidth, int maxHeight) {
         // Load the preview image if possible
@@ -1620,14 +1605,6 @@ public class AppsCustomizePagedView extends PagedViewWithDraggableItems implemen
                         info.activityInfo.name);
                 widget.applyFromResolveInfo(mPackageManager, info);
                 widget.setTag(createItemInfo);
-            } else if (rawInfo instanceof LauncherAction.Action) {
-                // Fill in the actions information
-                LauncherAction.Action info = (LauncherAction.Action) rawInfo;
-                createItemInfo = new PendingAddActionInfo();
-                ((PendingAddActionInfo)createItemInfo).action = info;
-                createItemInfo.itemType = LauncherSettings.Favorites.ITEM_TYPE_LAUNCHER_ACTION;
-                widget.applyFromLauncherAction(info);
-                widget.setTag(createItemInfo);
             }
             widget.setOnClickListener(this);
             widget.setOnLongClickListener(this);
@@ -1714,9 +1691,6 @@ public class AppsCustomizePagedView extends PagedViewWithDraggableItems implemen
                 // Fill in the shortcuts information
                 ResolveInfo info = (ResolveInfo) item;
                 images.add(getShortcutPreview(info, data.maxImageWidth, data.maxImageHeight));
-            } else if (item instanceof LauncherAction.Action) {
-                LauncherAction.Action info = (LauncherAction.Action) item;
-                images.add(getShortcutPreview(info));
             }
         }
     }
