@@ -1698,8 +1698,7 @@ public final class Launcher extends Activity
         launcherIntent.addCategory(Intent.CATEGORY_HOME);
         launcherIntent.addCategory(Intent.CATEGORY_DEFAULT);
         ActivityInfo defaultLauncher = getPackageManager().resolveActivity(launcherIntent, PackageManager.MATCH_DEFAULT_ONLY).activityInfo;
-        boolean preferencesVisible = defaultLauncher.packageName.equals(getClass().getPackage().getName());
-        menu.findItem(MENU_PREFERENCES).setVisible(preferencesVisible);
+        menu.findItem(MENU_PREFERENCES).setVisible(true);
         return true;
     }
 
@@ -3285,21 +3284,10 @@ public final class Launcher extends Activity
         Intent launcherIntent = new Intent(Intent.ACTION_MAIN);
         launcherIntent.addCategory(Intent.CATEGORY_HOME);
         launcherIntent.addCategory(Intent.CATEGORY_DEFAULT);
-        ActivityInfo defaultLauncher = getPackageManager().resolveActivity(launcherIntent, PackageManager.MATCH_DEFAULT_ONLY).activityInfo;
-        boolean preferencesVisible = defaultLauncher.packageName.equals(getClass().getPackage().getName());
-        if (activityName != null && (ViewConfiguration.get(this).hasPermanentMenuKey() || !preferencesVisible)) {
-            int coi = getCurrentOrientationIndexForGlobalIcons();
-            mAppMarketIntent = intent;
-            sAppMarketIcon[coi] = updateTextButtonWithIconFromExternalActivity(
-                    R.id.market_button, activityName, R.drawable.ic_launcher_market_holo,
-                    TOOLBAR_ICON_METADATA_NAME);
-            marketButton.setVisibility(View.VISIBLE);
-        } else {
-            // We should hide and disable the view so that we don't try and restore the visibility
-            // of it when we swap between drag & normal states from IconDropTarget subclasses.
-            marketButton.setVisibility(View.GONE);
-            marketButton.setEnabled(false);
-        }
+        // We should hide and disable the view so that we don't try and restore the visibility
+        // of it when we swap between drag & normal states from IconDropTarget subclasses.
+        marketButton.setVisibility(View.GONE);
+        marketButton.setEnabled(false);
     }
 
     private void updateAppMarketIcon(Drawable.ConstantState d) {
@@ -3333,8 +3321,7 @@ public final class Launcher extends Activity
         launcherIntent.addCategory(Intent.CATEGORY_HOME);
         launcherIntent.addCategory(Intent.CATEGORY_DEFAULT);
         ActivityInfo defaultLauncher = getPackageManager().resolveActivity(launcherIntent, PackageManager.MATCH_DEFAULT_ONLY).activityInfo;
-        boolean preferencesVisible = defaultLauncher.packageName.equals(getClass().getPackage().getName());
-        if (ViewConfiguration.get(this).hasPermanentMenuKey() || !preferencesVisible) {
+        if (ViewConfiguration.get(this).hasPermanentMenuKey()) {
             overflowMenuButton.setVisibility(View.GONE);
             overflowMenuButton.setEnabled(false);
         } else {
